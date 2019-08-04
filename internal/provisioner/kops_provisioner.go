@@ -985,9 +985,7 @@ func (provisioner *KopsProvisioner) GetClusterInstallationResource(cluster *mode
 
 // ExecMattermostCLI invokes the Mattermost CLI for the given cluster installation with the given args.
 func (provisioner *KopsProvisioner) ExecMattermostCLI(cluster *model.Cluster, clusterInstallation *model.ClusterInstallation, args ...string) ([]byte, error) {
-	command := append([]string{"./bin/mattermost"}, args...)
-
-	return provisioner.execCLI(cluster, clusterInstallation, command...)
+	return provisioner.execCLI(cluster, clusterInstallation, append([]string{"./bin/mattermost"}, args...)...)
 }
 
 func (provisioner *KopsProvisioner) execCLI(cluster *model.Cluster, clusterInstallation *model.ClusterInstallation, args ...string) ([]byte, error) {
