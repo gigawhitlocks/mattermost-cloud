@@ -11,8 +11,8 @@ import (
 func init() {
 	clusterInstallationCmd.PersistentFlags().String("server", "http://localhost:8075", "The provisioning server whose API will be queried.")
 
-	clusterInstallationGetCmd.Flags().String("cluster_installation", "", "The id of the cluster installation to be fetched.")
-	clusterInstallationGetCmd.MarkFlagRequired("cluster_installation")
+	clusterInstallationGetCmd.Flags().String("cluster-installation", "", "The id of the cluster installation to be fetched.")
+	clusterInstallationGetCmd.MarkFlagRequired("cluster-installation")
 
 	clusterInstallationListCmd.Flags().String("cluster", "", "The cluster by which to filter cluster installations.")
 	clusterInstallationListCmd.Flags().String("installation", "", "The installation by which to filter cluster installations.")
@@ -20,8 +20,8 @@ func init() {
 	clusterInstallationListCmd.Flags().Int("per-page", 100, "The number of cluster installations to fetch per page.")
 	clusterInstallationListCmd.Flags().Bool("include-deleted", false, "Whether to include deleted cluster installations.")
 
-	clusterInstallationConfigCmd.PersistentFlags().String("cluster_installation", "", "The id of the cluster installation.")
-	clusterInstallationConfigCmd.MarkFlagRequired("cluster_installation")
+	clusterInstallationConfigCmd.PersistentFlags().String("cluster-installation", "", "The id of the cluster installation.")
+	clusterInstallationConfigCmd.MarkFlagRequired("cluster-installation")
 
 	clusterInstallationConfigSetCmd.Flags().String("key", "", "The configuration key to update (e.g. ServiceSettings.SiteURL).")
 	clusterInstallationConfigSetCmd.Flags().String("value", "", "The value to write to the config.")
@@ -50,7 +50,7 @@ var clusterInstallationGetCmd = &cobra.Command{
 		serverAddress, _ := command.Flags().GetString("server")
 		client := model.NewClient(serverAddress)
 
-		clusterInstallationID, _ := command.Flags().GetString("cluster_installation")
+		clusterInstallationID, _ := command.Flags().GetString("cluster-installation")
 		clusterInstallation, err := client.GetClusterInstallation(clusterInstallationID)
 		if err != nil {
 			return errors.Wrap(err, "failed to query cluster installation")
@@ -117,7 +117,7 @@ var clusterInstallationConfigGetCmd = &cobra.Command{
 		serverAddress, _ := command.Flags().GetString("server")
 		client := model.NewClient(serverAddress)
 
-		clusterInstallationID, _ := command.Flags().GetString("cluster_installation")
+		clusterInstallationID, _ := command.Flags().GetString("cluster-installation")
 		clusterInstallationConfig, err := client.GetClusterInstallationConfig(clusterInstallationID)
 		if err != nil {
 			return errors.Wrap(err, "failed to query cluster installation config")
@@ -144,7 +144,7 @@ var clusterInstallationConfigSetCmd = &cobra.Command{
 		serverAddress, _ := command.Flags().GetString("server")
 		client := model.NewClient(serverAddress)
 
-		clusterInstallationID, _ := command.Flags().GetString("cluster_installation")
+		clusterInstallationID, _ := command.Flags().GetString("cluster-installation")
 		key, _ := command.Flags().GetString("key")
 		value, _ := command.Flags().GetString("value")
 

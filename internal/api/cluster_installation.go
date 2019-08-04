@@ -186,7 +186,7 @@ func handleSetClusterInstallationConfig(c *Context, w http.ResponseWriter, r *ht
 					return err
 				}
 
-				c.Logger.Infof("successfully set key %s to value %s", fullKey, valueStr)
+				c.Logger.Infof("Successfully set config key %s to value %s", fullKey, valueStr)
 				continue
 			}
 

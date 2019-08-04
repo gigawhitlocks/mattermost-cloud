@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -19,8 +18,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/remotecommand"
-	utilexec "k8s.io/client-go/util/exec"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/mattermost/mattermost-cloud/internal/tools/aws"
@@ -986,17 +983,6 @@ func (provisioner *KopsProvisioner) GetClusterInstallationResource(cluster *mode
 	return cr, nil
 }
 
-// Override the version to make match the nil value in the custom resource.
-// TODO: this could probably be better. We may want the operator to understand
-// default values instead of needing to pass in empty values.
-func translateMattermostVersion(version string) string {
-	if version == "stable" {
-		return ""
-	}
-
-	return version
-}
-
 // ExecMattermostCLI invokes the Mattermost CLI for the given cluster installation with the given args.
 func (provisioner *KopsProvisioner) ExecMattermostCLI(cluster *model.Cluster, clusterInstallation *model.ClusterInstallation, args ...string) ([]byte, error) {
 	logger := provisioner.logger.WithFields(map[string]interface{}{
@@ -1063,27 +1049,16 @@ func (provisioner *KopsProvisioner) ExecMattermostCLI(cluster *model.Cluster, cl
 			TTY:       false,
 		}, scheme.ParameterCodec)
 
-	exec, err := remotecommand.NewSPDYExecutor(k8sClient.GetConfig(), "POST", execRequest.URL())
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to execute remote command")
+	return k8sClient.RemoteCommand("POST", execRequest.URL())
+}
+
+// Override the version to make match the nil value in the custom resource.
+// TODO: this could probably be better. We may want the operator to understand
+// default values instead of needing to pass in empty values.
+func translateMattermostVersion(version string) string {
+	if version == "stable" {
+		return ""
 	}
 
-	var stdin io.Reader
-	var stdout, stderr bytes.Buffer
-
-	err = exec.Stream(remotecommand.StreamOptions{
-		Stdin:  stdin,
-		Stdout: &stdout,
-		Stderr: &stderr,
-		Tty:    false,
-	})
-	if err != nil {
-		if exitErr, ok := err.(utilexec.ExitError); ok && exitErr.Exited() {
-			return nil, errors.Errorf("remote command failed with exit status %d: %s%s", exitErr.ExitStatus(), stdout.String(), stderr.String())
-		}
-
-		return nil, errors.Wrapf(err, "remote command failed: %s%s", stdout.String(), stderr.String())
-	}
-
-	return stdout.Bytes(), nil
+	return version
 }
