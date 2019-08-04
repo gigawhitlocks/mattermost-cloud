@@ -985,6 +985,12 @@ func (provisioner *KopsProvisioner) GetClusterInstallationResource(cluster *mode
 
 // ExecMattermostCLI invokes the Mattermost CLI for the given cluster installation with the given args.
 func (provisioner *KopsProvisioner) ExecMattermostCLI(cluster *model.Cluster, clusterInstallation *model.ClusterInstallation, args ...string) ([]byte, error) {
+	command := append([]string{"./bin/mattermost"}, args...)
+
+	return provisioner.execCLI(cluster, clusterInstallation, command...)
+}
+
+func (provisioner *KopsProvisioner) execCLI(cluster *model.Cluster, clusterInstallation *model.ClusterInstallation, args ...string) ([]byte, error) {
 	logger := provisioner.logger.WithFields(map[string]interface{}{
 		"cluster":      clusterInstallation.ClusterID,
 		"installation": clusterInstallation.InstallationID,
@@ -1032,8 +1038,7 @@ func (provisioner *KopsProvisioner) ExecMattermostCLI(cluster *model.Cluster, cl
 	}
 
 	container := pod.Spec.Containers[0]
-	command := append([]string{"./bin/mattermost"}, args...)
-	logger.Debugf("Executing `%s` on pod %s, container %s, running image %s", strings.Join(command, " "), pod.Name, container.Name, container.Image)
+	logger.Debugf("Executing `%s` on pod %s, container %s, running image %s", strings.Join(args, " "), pod.Name, container.Name, container.Image)
 
 	execRequest := k8sClient.Clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
@@ -1042,7 +1047,7 @@ func (provisioner *KopsProvisioner) ExecMattermostCLI(cluster *model.Cluster, cl
 		SubResource("exec").
 		VersionedParams(&corev1.PodExecOptions{
 			Container: container.Name,
-			Command:   command,
+			Command:   args,
 			Stdin:     false,
 			Stdout:    true,
 			Stderr:    true,
