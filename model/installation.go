@@ -9,7 +9,9 @@ import (
 
 const (
 	// InstallationStateCreationRequested is an installation in the process of being created.
-	InstallationStateCreationRequested = "creation-requested"
+	InstallationStateCreationRequested       = "creation-requested"
+	InstallationStateCreationPreProvisioning = "creation-pre-provisioning"
+	InstallationStateCreationInProgress      = "creation-in-progress"
 	// InstallationStateCreationDNS is an installation in the process having configuring DNS.
 	InstallationStateCreationDNS = "creation-configuring-dns"
 	// InstallationStateCreationFailed is an installation that failed creation.
@@ -21,6 +23,8 @@ const (
 	InstallationStateDeletionRequested = "deletion-requested"
 	// InstallationStateDeletionInProgress is an installation being deleted.
 	InstallationStateDeletionInProgress = "deletion-in-progress"
+	// InstallationStateDeletionFinalCleanup is the final step of installation deletion.
+	InstallationStateDeletionFinalCleanup = "deletion-final-cleanup"
 	// InstallationStateDeletionFailed is an installation that failed deletion.
 	InstallationStateDeletionFailed = "deletion-failed"
 	// InstallationStateDeleted is an installation that has been deleted
@@ -44,6 +48,8 @@ type Installation struct {
 	OwnerID        string
 	Version        string
 	DNS            string
+	Database       string
+	Filestore      string
 	License        string
 	Size           string
 	Affinity       string

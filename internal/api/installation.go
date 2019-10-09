@@ -72,13 +72,15 @@ func handleCreateInstallation(c *Context, w http.ResponseWriter, r *http.Request
 	}
 
 	installation := model.Installation{
-		OwnerID:  createInstallationRequest.OwnerID,
-		Version:  createInstallationRequest.Version,
-		DNS:      createInstallationRequest.DNS,
-		License:  createInstallationRequest.License,
-		Size:     createInstallationRequest.Size,
-		Affinity: createInstallationRequest.Affinity,
-		State:    model.InstallationStateCreationRequested,
+		OwnerID:   createInstallationRequest.OwnerID,
+		Version:   createInstallationRequest.Version,
+		DNS:       createInstallationRequest.DNS,
+		Database:  createInstallationRequest.Database,
+		Filestore: createInstallationRequest.Filestore,
+		License:   createInstallationRequest.License,
+		Size:      createInstallationRequest.Size,
+		Affinity:  createInstallationRequest.Affinity,
+		State:     model.InstallationStateCreationRequested,
 	}
 
 	err = c.Store.CreateInstallation(&installation)

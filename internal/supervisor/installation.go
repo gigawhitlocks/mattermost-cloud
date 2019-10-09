@@ -37,7 +37,7 @@ type installationStore interface {
 
 // provisioner abstracts the provisioning operations required by the installation supervisor.
 type installationProvisioner interface {
-	CreateClusterInstallation(cluster *model.Cluster, installation *model.Installation, clusterInstallation *model.ClusterInstallation) error
+	CreateClusterInstallation(cluster *model.Cluster, installation *model.Installation, clusterInstallation *model.ClusterInstallation, awsClient aws.AWS) error
 	DeleteClusterInstallation(cluster *model.Cluster, installation *model.Installation, clusterInstallation *model.ClusterInstallation) error
 	UpdateClusterInstallation(cluster *model.Cluster, installation *model.Installation, clusterInstallation *model.ClusterInstallation) error
 	GetClusterInstallationResource(cluster *model.Cluster, installation *model.Installation, clusterInstallation *model.ClusterInstallation) (*mmv1alpha1.ClusterInstallation, error)
@@ -54,17 +54,19 @@ type InstallationSupervisor struct {
 	aws                      aws.AWS
 	instanceID               string
 	clusterResourceThreshold int
+	keepS3Buckets            bool
 	logger                   log.FieldLogger
 }
 
 // NewInstallationSupervisor creates a new InstallationSupervisor.
-func NewInstallationSupervisor(store installationStore, installationProvisioner installationProvisioner, aws aws.AWS, instanceID string, threshold int, logger log.FieldLogger) *InstallationSupervisor {
+func NewInstallationSupervisor(store installationStore, installationProvisioner installationProvisioner, aws aws.AWS, instanceID string, threshold int, keepS3buckets bool, logger log.FieldLogger) *InstallationSupervisor {
 	return &InstallationSupervisor{
 		store:                    store,
 		provisioner:              installationProvisioner,
 		aws:                      aws,
 		instanceID:               instanceID,
 		clusterResourceThreshold: threshold,
+		keepS3Buckets:            keepS3buckets,
 		logger:                   logger,
 	}
 }
@@ -136,10 +138,12 @@ func (s *InstallationSupervisor) Supervise(installation *model.Installation) {
 // transitionInstallation works with the given installation to transition it to a final state.
 func (s *InstallationSupervisor) transitionInstallation(installation *model.Installation, instanceID string, logger log.FieldLogger) string {
 	switch installation.State {
-	case model.InstallationStateCreationRequested:
-		return s.createInstallation(installation, instanceID, logger)
+	case model.InstallationStateCreationRequested,
+		model.InstallationStateCreationPreProvisioning:
+		return s.preProvisionInstallation(installation, instanceID, logger)
 
-	case model.InstallationStateCreationNoCompatibleClusters:
+	case model.InstallationStateCreationInProgress,
+		model.InstallationStateCreationNoCompatibleClusters:
 		return s.createInstallation(installation, instanceID, logger)
 
 	case model.InstallationStateCreationDNS:
@@ -151,13 +155,39 @@ func (s *InstallationSupervisor) transitionInstallation(installation *model.Inst
 	case model.InstallationStateUpgradeInProgress:
 		return s.waitForUpdateComplete(installation, instanceID, logger)
 
-	case model.InstallationStateDeletionRequested, model.InstallationStateDeletionInProgress:
+	case model.InstallationStateDeletionRequested,
+		model.InstallationStateDeletionInProgress:
 		return s.deleteInstallation(installation, instanceID, logger)
+
+	case model.InstallationStateDeletionFinalCleanup:
+		return s.finalDeletionCleanup(installation, logger)
 
 	default:
 		logger.Warnf("Found installation pending work in unexpected state %s", installation.State)
 		return installation.State
 	}
+}
+
+func (s *InstallationSupervisor) preProvisionInstallation(installation *model.Installation, instanceID string, logger log.FieldLogger) string {
+	switch installation.Filestore {
+	case model.InstallationFilestoreOperator:
+
+	case model.InstallationFilestoreS3:
+		logger.Info("Provisioning AWS S3 filestore")
+
+		err := s.aws.S3FilestoreProvision(installation.ID, logger)
+		if err != nil {
+			logger.WithError(err).Warn("Failed to provision AWS S3 filestore")
+			return model.InstallationStateCreationPreProvisioning
+		}
+
+	default:
+		logger.Warnf("Unknown filestore %s; skipping pre-provisioning of filestore", installation.Filestore)
+	}
+
+	logger.Info("Installation pre-provisioning complete")
+
+	return s.createInstallation(installation, instanceID, logger)
 }
 
 func (s *InstallationSupervisor) createInstallation(installation *model.Installation, instanceID string, logger log.FieldLogger) string {
@@ -198,7 +228,7 @@ func (s *InstallationSupervisor) createInstallation(installation *model.Installa
 			return model.InstallationStateCreationFailed
 		}
 
-		return model.InstallationStateCreationRequested
+		return model.InstallationStateCreationInProgress
 	}
 
 	// Otherwise proceed to requesting cluster installation creation on any available clusters.
@@ -216,7 +246,7 @@ func (s *InstallationSupervisor) createInstallation(installation *model.Installa
 		if clusterInstallation != nil {
 			// Once created, preserve the existing state until the cluster installation
 			// stabilizes.
-			return model.InstallationStateCreationRequested
+			return model.InstallationStateCreationInProgress
 		}
 	}
 
@@ -287,8 +317,18 @@ func (s *InstallationSupervisor) createClusterInstallation(cluster *model.Cluste
 		return nil
 	}
 
-	cpuPercent := clusterResources.CalculateCPUPercentUsed(size.CalculateCPUMilliRequirement(true, true))
-	memoryPercent := clusterResources.CalculateMemoryPercentUsed(size.CalculateMemoryMilliRequirement(true, true))
+	cpuPercent := clusterResources.CalculateCPUPercentUsed(
+		size.CalculateCPUMilliRequirement(
+			true,
+			installation.InternalFilestore(),
+		),
+	)
+	memoryPercent := clusterResources.CalculateMemoryPercentUsed(
+		size.CalculateMemoryMilliRequirement(
+			true,
+			installation.InternalFilestore(),
+		),
+	)
 	if cpuPercent > s.clusterResourceThreshold || memoryPercent > s.clusterResourceThreshold {
 		logger.Debugf("Cluster %s would exceed the cluster load threshold (%d%%): CPU=%d%%, Memory=%d%%", cluster.ID, s.clusterResourceThreshold, cpuPercent, memoryPercent)
 		return nil
@@ -575,16 +615,36 @@ func (s *InstallationSupervisor) deleteInstallation(installation *model.Installa
 		return model.InstallationStateDeletionInProgress
 	}
 
-	err = s.aws.DeleteCNAME(installation.DNS, logger)
+	return s.finalDeletionCleanup(installation, logger)
+}
+
+func (s *InstallationSupervisor) finalDeletionCleanup(installation *model.Installation, logger log.FieldLogger) string {
+	err := s.aws.DeleteCNAME(installation.DNS, logger)
 	if err != nil {
 		logger.WithError(err).Error("Failed to delete installation DNS")
-		return installation.State
+		return model.InstallationStateDeletionFinalCleanup
+	}
+
+	switch installation.Filestore {
+	case model.InstallationFilestoreOperator:
+		logger.Debug("Installation is using an operator filestore; no cleanup required")
+
+	case model.InstallationFilestoreS3:
+		err = s.aws.S3FilestoreTeardown(installation.ID, s.keepS3Buckets, logger)
+		if err != nil {
+			logger.WithError(err).Error("Failed to delete installation AWS S3 filestore")
+			return model.InstallationStateDeletionFinalCleanup
+		}
+		logger.Debug("Installation S3 filestore deleted")
+
+	default:
+		logger.Warnf("Unable to cleanup unsupported filestore: %s", installation.Filestore)
 	}
 
 	err = s.store.DeleteInstallation(installation.ID)
 	if err != nil {
 		logger.WithError(err).Warn("Failed to mark installation as deleted")
-		return installation.State
+		return model.InstallationStateDeletionFinalCleanup
 	}
 
 	logger.Infof("Finished deleting cluster installation")

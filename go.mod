@@ -4,11 +4,16 @@ go 1.12
 
 require (
 	github.com/Masterminds/squirrel v1.1.0
-	github.com/aws/aws-sdk-go v1.19.41
+	github.com/aws/aws-sdk-go v1.25.6
+	github.com/bettercap/bettercap v2.24.1+incompatible
+	github.com/bettercap/readline v0.0.0-20180208083827-9cec905dd291 // indirect
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/evanphx/json-patch v4.2.0+incompatible // indirect
+	github.com/evilsocket/islazy v1.10.4 // indirect
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d // indirect
 	github.com/golang/protobuf v1.3.1 // indirect
+	github.com/google/gopacket v1.1.17 // indirect
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gorilla/mux v1.7.1
@@ -19,8 +24,10 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/kubernetes/client-go v11.0.0+incompatible
 	github.com/lib/pq v1.0.0
-	github.com/mattermost/mattermost-operator v0.5.2-0.20190806202600-a7b818fc48dd
+	github.com/malfunkt/iprange v0.9.0 // indirect
+	github.com/mattermost/mattermost-operator v0.6.2-0.20191008142649-9408c34d584b
 	github.com/mattn/go-sqlite3 v1.9.0
+	github.com/mdlayher/dhcp6 v0.0.0-20190311162359-2a67805d7d0b // indirect
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/pborman/uuid v1.2.0

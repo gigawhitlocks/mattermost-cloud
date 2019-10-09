@@ -742,11 +742,12 @@ func helmSetup(logger log.FieldLogger, kops *kops.Cmd) error {
 }
 
 // CreateClusterInstallation creates a Mattermost installation within the given cluster.
-func (provisioner *KopsProvisioner) CreateClusterInstallation(cluster *model.Cluster, installation *model.Installation, clusterInstallation *model.ClusterInstallation) error {
+func (provisioner *KopsProvisioner) CreateClusterInstallation(cluster *model.Cluster, installation *model.Installation, clusterInstallation *model.ClusterInstallation, awsClient aws.AWS) error {
 	logger := provisioner.logger.WithFields(map[string]interface{}{
 		"cluster":      clusterInstallation.ClusterID,
 		"installation": clusterInstallation.InstallationID,
 	})
+	logger.Info("Creating cluster installation")
 
 	kops, err := kops.New(provisioner.s3StateStore, logger)
 	if err != nil {
@@ -774,16 +775,7 @@ func (provisioner *KopsProvisioner) CreateClusterInstallation(cluster *model.Clu
 		return errors.Wrapf(err, "failed to create namespace %s", clusterInstallation.Namespace)
 	}
 
-	var secretName string
-	if installation.License != "" {
-		secretName = fmt.Sprintf("%s-license", makeClusterInstallationName(clusterInstallation))
-		_, err = k8sClient.CreateSecret(clusterInstallation.Namespace, secretName, "license", installation.License)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create the license secret %s/%s", clusterInstallation.Namespace, secretName)
-		}
-	}
-
-	_, err = k8sClient.MattermostClientset.MattermostV1alpha1().ClusterInstallations(clusterInstallation.Namespace).Create(&mmv1alpha1.ClusterInstallation{
+	mattermostInstallation := &mmv1alpha1.ClusterInstallation{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ClusterInstallation",
 			APIVersion: "mattermost.com/v1alpha1",
@@ -807,9 +799,51 @@ func (provisioner *KopsProvisioner) CreateClusterInstallation(cluster *model.Clu
 				"service.beta.kubernetes.io/aws-load-balancer-ssl-ports":               "https",
 				"service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout": "120",
 			},
-			MattermostLicenseSecret: secretName,
 		},
-	})
+	}
+
+	if installation.License != "" {
+		licenseSecretName := fmt.Sprintf("%s-license", makeClusterInstallationName(clusterInstallation))
+		_, err = k8sClient.CreateSecret(clusterInstallation.Namespace, licenseSecretName, map[string]string{"license": installation.License})
+		if err != nil {
+			return errors.Wrapf(err, "failed to create the license secret %s/%s", clusterInstallation.Namespace, licenseSecretName)
+		}
+
+		mattermostInstallation.Spec.MattermostLicenseSecret = licenseSecretName
+		logger.Debug("Cluster installation configured with a Mattermost license")
+	}
+
+	switch installation.Filestore {
+	case model.InstallationFilestoreOperator:
+		logger.Debug("Cluster installation configured to use MinIO operator filestore")
+
+	case model.InstallationFilestoreS3:
+		iamAccessKey, err := awsClient.SecretsManagerGetIAMAccessKey(installation.ID)
+		if err != nil {
+			return err
+		}
+
+		secretStrings := map[string]string{
+			"MINIO_ACCESS_KEY": iamAccessKey.ID,
+			"MINIO_SECRET_KEY": iamAccessKey.Secret,
+		}
+
+		iamAccessKeySecretName := fmt.Sprintf("%s-iam-access-key", makeClusterInstallationName(clusterInstallation))
+		_, err = k8sClient.CreateSecret(clusterInstallation.Namespace, iamAccessKeySecretName, secretStrings)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create the IAM access key secret %s/%s", clusterInstallation.Namespace, iamAccessKeySecretName)
+		}
+
+		mattermostInstallation.Spec.Minio.ExternalURL = aws.S3URL
+		mattermostInstallation.Spec.Minio.ExternalBucket = aws.CloudID(installation.ID)
+		mattermostInstallation.Spec.Minio.Secret = iamAccessKeySecretName
+		logger.Debug("Cluster installation configured to use an AWS S3 filestore")
+
+	default:
+		logger.Warnf("Unknown filestore %s; defaulting to MinIO operator filestore", installation.Filestore)
+	}
+
+	_, err = k8sClient.MattermostClientset.MattermostV1alpha1().ClusterInstallations(clusterInstallation.Namespace).Create(mattermostInstallation)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cluster installation")
 	}

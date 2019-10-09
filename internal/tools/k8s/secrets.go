@@ -21,7 +21,7 @@ func (kc *KubeClient) CreateOrUpdateSecret(namespace string, secret *corev1.Secr
 }
 
 // CreateSecret creates kubernetes secret.
-func (kc *KubeClient) CreateSecret(namespaceName, secretName, secretKey, secretValue string) (*corev1.Secret, error) {
+func (kc *KubeClient) CreateSecret(namespaceName, secretName string, secretStrings map[string]string) (*corev1.Secret, error) {
 	// Check if secret exists first.
 	svc, err := kc.Clientset.CoreV1().Secrets(namespaceName).Get(secretName, metav1.GetOptions{})
 	if err == nil {
@@ -33,9 +33,7 @@ func (kc *KubeClient) CreateSecret(namespaceName, secretName, secretKey, secretV
 			Name:      secretName,
 			Namespace: namespaceName,
 		},
-		StringData: map[string]string{
-			secretKey: secretValue,
-		},
+		StringData: secretStrings,
 	}
 	return kc.Clientset.CoreV1().Secrets(namespaceName).Create(svcSpec)
 }

@@ -10,8 +10,14 @@ import (
 type AWS interface {
 	CreateCNAME(dnsName string, dnsEndpoints []string, logger log.FieldLogger) error
 	DeleteCNAME(dnsName string, logger log.FieldLogger) error
+
 	TagResource(resourceID, key, value string, logger log.FieldLogger) error
 	UntagResource(resourceID, key, value string, logger log.FieldLogger) error
+
+	S3FilestoreProvision(installationID string, logger log.FieldLogger) error
+	S3FilestoreTeardown(installationID string, keepBucket bool, logger log.FieldLogger) error
+
+	SecretsManagerGetIAMAccessKey(installationID string) (*IAMAccessKey, error)
 }
 
 // Client is a client for interacting with AWS resources.
