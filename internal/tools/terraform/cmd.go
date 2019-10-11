@@ -4,7 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const defaultTerraformPath = "/usr/local/bin/terraform"
+const defaultTerraformPath = "terraform"
 
 // Cmd is the terraform command to execute.
 type Cmd struct {

@@ -54,19 +54,19 @@ type InstallationSupervisor struct {
 	aws                      aws.AWS
 	instanceID               string
 	clusterResourceThreshold int
-	keepS3Buckets            bool
+	keepFilestoreData        bool
 	logger                   log.FieldLogger
 }
 
 // NewInstallationSupervisor creates a new InstallationSupervisor.
-func NewInstallationSupervisor(store installationStore, installationProvisioner installationProvisioner, aws aws.AWS, instanceID string, threshold int, keepS3buckets bool, logger log.FieldLogger) *InstallationSupervisor {
+func NewInstallationSupervisor(store installationStore, installationProvisioner installationProvisioner, aws aws.AWS, instanceID string, threshold int, keepFilestoreData bool, logger log.FieldLogger) *InstallationSupervisor {
 	return &InstallationSupervisor{
 		store:                    store,
 		provisioner:              installationProvisioner,
 		aws:                      aws,
 		instanceID:               instanceID,
 		clusterResourceThreshold: threshold,
-		keepS3Buckets:            keepS3buckets,
+		keepFilestoreData:        keepFilestoreData,
 		logger:                   logger,
 	}
 }
@@ -169,20 +169,10 @@ func (s *InstallationSupervisor) transitionInstallation(installation *model.Inst
 }
 
 func (s *InstallationSupervisor) preProvisionInstallation(installation *model.Installation, instanceID string, logger log.FieldLogger) string {
-	switch installation.Filestore {
-	case model.InstallationFilestoreOperator:
-
-	case model.InstallationFilestoreS3:
-		logger.Info("Provisioning AWS S3 filestore")
-
-		err := s.aws.S3FilestoreProvision(installation.ID, logger)
-		if err != nil {
-			logger.WithError(err).Warn("Failed to provision AWS S3 filestore")
-			return model.InstallationStateCreationPreProvisioning
-		}
-
-	default:
-		logger.Warnf("Unknown filestore %s; skipping pre-provisioning of filestore", installation.Filestore)
+	err := installation.GetFilestore().Provision(logger)
+	if err != nil {
+		logger.WithError(err).Warn("Failed to provision AWS S3 filestore")
+		return model.InstallationStateCreationPreProvisioning
 	}
 
 	logger.Info("Installation pre-provisioning complete")
@@ -625,20 +615,10 @@ func (s *InstallationSupervisor) finalDeletionCleanup(installation *model.Instal
 		return model.InstallationStateDeletionFinalCleanup
 	}
 
-	switch installation.Filestore {
-	case model.InstallationFilestoreOperator:
-		logger.Debug("Installation is using an operator filestore; no cleanup required")
-
-	case model.InstallationFilestoreS3:
-		err = s.aws.S3FilestoreTeardown(installation.ID, s.keepS3Buckets, logger)
-		if err != nil {
-			logger.WithError(err).Error("Failed to delete installation AWS S3 filestore")
-			return model.InstallationStateDeletionFinalCleanup
-		}
-		logger.Debug("Installation S3 filestore deleted")
-
-	default:
-		logger.Warnf("Unable to cleanup unsupported filestore: %s", installation.Filestore)
+	err = installation.GetFilestore().Teardown(s.keepFilestoreData, logger)
+	if err != nil {
+		logger.WithError(err).Error("Failed to delete installation AWS S3 filestore")
+		return model.InstallationStateDeletionFinalCleanup
 	}
 
 	err = s.store.DeleteInstallation(installation.ID)

@@ -14,8 +14,8 @@ func TestIsSupportedFilestore(t *testing.T) {
 	}{
 		{"", false},
 		{"unknown", false},
-		{model.InstallationFilestoreOperator, true},
-		{model.InstallationFilestoreS3, true},
+		{model.InstallationFilestoreMinioOperator, true},
+		{model.InstallationFilestoreAwsS3, true},
 	}
 
 	for _, tc := range testCases {

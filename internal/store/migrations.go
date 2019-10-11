@@ -410,11 +410,11 @@ var migrations = []migration{
 				return err
 			}
 
-			_, err = e.Exec(`UPDATE Installation SET Database = 'operator';`)
+			_, err = e.Exec(`UPDATE Installation SET Database = 'mysql-operator';`)
 			if err != nil {
 				return err
 			}
-			_, err = e.Exec(`UPDATE Installation SET Filestore = 'operator';`)
+			_, err = e.Exec(`UPDATE Installation SET Filestore = 'minio-operator';`)
 			if err != nil {
 				return err
 			}
@@ -463,8 +463,8 @@ var migrations = []migration{
 						OwnerID,
 						Version,
 						DNS,
-						"operator",
-						"operator",
+						"mysql-operator",
+						"minio-operator",
 						License,
 						Size,
 						Affinity,

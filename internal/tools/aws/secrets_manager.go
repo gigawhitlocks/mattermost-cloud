@@ -13,13 +13,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// IAMAccessKey is the ID and Secret of an AWS IAM user's access key.
 type IAMAccessKey struct {
 	ID     string
 	Secret string
-}
-
-func (a *Client) SecretsManagerGetIAMAccessKey(installationID string) (*IAMAccessKey, error) {
-	return a.SecretsManagerGetIAMAccessKey(CloudID(installationID))
 }
 
 func (a *Client) secretsManagerEnsureIAMAccessKeySecretCreated(awsID string, ak *iam.AccessKey) error {
@@ -46,7 +43,7 @@ func (a *Client) secretsManagerEnsureIAMAccessKeySecretCreated(awsID string, ak 
 	return nil
 }
 
-func (a *Client) secretsManagerGetIAMAccessKey(awsID string) (*IAMAccessKey, error) {
+func secretsManagerGetIAMAccessKey(awsID string) (*IAMAccessKey, error) {
 	svc := secretsmanager.New(session.New())
 
 	result, err := svc.GetSecretValue(&secretsmanager.GetSecretValueInput{

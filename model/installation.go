@@ -8,10 +8,14 @@ import (
 )
 
 const (
-	// InstallationStateCreationRequested is an installation in the process of being created.
-	InstallationStateCreationRequested       = "creation-requested"
+	// InstallationStateCreationRequested is an installation waiting to be created.
+	InstallationStateCreationRequested = "creation-requested"
+	// InstallationStateCreationPreProvisioning in an installation in the process
+	// of having managed services created along with any other preparation.
 	InstallationStateCreationPreProvisioning = "creation-pre-provisioning"
-	InstallationStateCreationInProgress      = "creation-in-progress"
+	// InstallationStateCreationInProgress is an installation in the process of
+	// being created.
+	InstallationStateCreationInProgress = "creation-in-progress"
 	// InstallationStateCreationDNS is an installation in the process having configuring DNS.
 	InstallationStateCreationDNS = "creation-configuring-dns"
 	// InstallationStateCreationFailed is an installation that failed creation.

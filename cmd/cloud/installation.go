@@ -15,8 +15,8 @@ func init() {
 	installationCreateCmd.Flags().String("size", model.InstallationDefaultSize, "The size of the installation. Accepts 100users, 1000users, 5000users, 10000users, 25000users, miniSingleton, or miniHA. Defaults to 100users.")
 	installationCreateCmd.Flags().String("affinity", model.InstallationAffinityIsolated, "How other installations may be co-located in the same cluster.")
 	installationCreateCmd.Flags().String("license", "", "The Mattermost License to use in the server.")
-	installationCreateCmd.Flags().String("database", model.InstallationDatabaseOperator, "The Mattermost server database type. Accepts operator or rds")
-	installationCreateCmd.Flags().String("filestore", model.InstallationFilestoreOperator, "The Mattermost server filestore type. Accepts operator or s3")
+	installationCreateCmd.Flags().String("database", model.InstallationDatabaseMysqlOperator, "The Mattermost server database type. Accepts mysql-operator or aws-rds")
+	installationCreateCmd.Flags().String("filestore", model.InstallationFilestoreMinioOperator, "The Mattermost server filestore type. Accepts minio-operator or aws-s3")
 	installationCreateCmd.MarkFlagRequired("owner")
 	installationCreateCmd.MarkFlagRequired("dns")
 

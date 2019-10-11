@@ -35,10 +35,10 @@ func (request *CreateInstallationRequest) SetDefaults() {
 		request.Affinity = InstallationAffinityIsolated
 	}
 	if request.Database == "" {
-		request.Database = InstallationDatabaseOperator
+		request.Database = InstallationDatabaseMysqlOperator
 	}
 	if request.Filestore == "" {
-		request.Filestore = InstallationFilestoreOperator
+		request.Filestore = InstallationFilestoreMinioOperator
 	}
 }
 

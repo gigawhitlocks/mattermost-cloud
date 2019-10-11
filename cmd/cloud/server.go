@@ -40,7 +40,7 @@ func init() {
 	serverCmd.PersistentFlags().String("public-subnets", "", "The public subnet IDs to use on AWS.")
 	serverCmd.PersistentFlags().Int("poll", 30, "The interval in seconds to poll for background work.")
 	serverCmd.PersistentFlags().Int("cluster-resource-threshold", 80, "The percent threshold where new installations won't be scheduled on a multi-tenant cluster")
-	serverCmd.PersistentFlags().Bool("keep-s3-buckets", false, "Whether to preserve AWS S3 filestore buckets after installation deletion or not")
+	serverCmd.PersistentFlags().Bool("keep-filestore-data", false, "Whether to preserve filestore data after installation deletion or not")
 	serverCmd.PersistentFlags().Bool("debug", false, "Whether to output debug logs.")
 	serverCmd.MarkPersistentFlagRequired("route53-id")
 	serverCmd.MarkPersistentFlagRequired("private-route53-id")
@@ -90,7 +90,7 @@ var serverCmd = &cobra.Command{
 		route53ZoneID, _ := command.Flags().GetString("route53-id")
 		privateRoute53ZoneID, _ := command.Flags().GetString("private-route53-id")
 		privateDNS, _ := command.Flags().GetString("private-dns")
-		keepS3Buckets, _ := command.Flags().GetBool("keep-s3-buckets")
+		keepFilestoreData, _ := command.Flags().GetBool("keep-filestore-data")
 
 		wd, err := os.Getwd()
 		if err != nil {
@@ -109,7 +109,7 @@ var serverCmd = &cobra.Command{
 			"private-route53-id":         privateRoute53ZoneID,
 			"private-dns":                privateDNS,
 			"cluster-resource-threshold": clusterResourceThreshold,
-			"keep-s3-buckets":            keepS3Buckets,
+			"keep-filestore-data":        keepFilestoreData,
 			"debug":                      debug,
 		}).Info("Starting Mattermost Provisioning Server")
 
@@ -134,7 +134,7 @@ var serverCmd = &cobra.Command{
 		supervisor := supervisor.NewScheduler(
 			supervisor.MultiDoer{
 				supervisor.NewClusterSupervisor(sqlStore, kopsProvisioner, aws.New(privateRoute53ZoneID), instanceID, logger),
-				supervisor.NewInstallationSupervisor(sqlStore, kopsProvisioner, aws.New(route53ZoneID), instanceID, clusterResourceThreshold, keepS3Buckets, logger),
+				supervisor.NewInstallationSupervisor(sqlStore, kopsProvisioner, aws.New(route53ZoneID), instanceID, clusterResourceThreshold, keepFilestoreData, logger),
 				supervisor.NewClusterInstallationSupervisor(sqlStore, kopsProvisioner, aws.New(route53ZoneID), instanceID, logger),
 			},
 			time.Duration(poll)*time.Second,

@@ -1,13 +1,13 @@
 package model
 
 const (
-	// InstallationDatabaseOperator is a database hosted in kubernetes via the operator.
-	InstallationDatabaseOperator = "operator"
-	// InstallationDatabaseRDS is a database hosted via Amazon RDS.
-	InstallationDatabaseRDS = "rds"
+	// InstallationDatabaseMysqlOperator is a database hosted in kubernetes via the operator.
+	InstallationDatabaseMysqlOperator = "mysql-operator"
+	// InstallationDatabaseAwsRDS is a database hosted via Amazon RDS.
+	InstallationDatabaseAwsRDS = "aws-rds"
 )
 
 // IsSupportedDatabase returns true if the given database string is supported.
 func IsSupportedDatabase(database string) bool {
-	return database == InstallationDatabaseOperator || database == InstallationDatabaseRDS
+	return database == InstallationDatabaseMysqlOperator || database == InstallationDatabaseAwsRDS
 }

@@ -363,7 +363,7 @@ func TestInstallationSupervisor(t *testing.T) {
 		require.NoError(t, err)
 
 		supervisor.Supervise(installation)
-		expectInstallationState(t, sqlStore, installation, model.InstallationStateCreationRequested)
+		expectInstallationState(t, sqlStore, installation, model.InstallationStateCreationInProgress)
 		expectClusterInstallations(t, sqlStore, installation, 1, model.ClusterInstallationStateCreationRequested)
 	})
 
@@ -618,7 +618,7 @@ func TestInstallationSupervisor(t *testing.T) {
 		require.NoError(t, err)
 
 		supervisor.Supervise(installation)
-		expectInstallationState(t, sqlStore, installation, model.InstallationStateCreationRequested)
+		expectInstallationState(t, sqlStore, installation, model.InstallationStateCreationInProgress)
 		expectClusterInstallations(t, sqlStore, installation, 1, model.ClusterInstallationStateCreationRequested)
 	})
 
@@ -930,7 +930,7 @@ func TestInstallationSupervisor(t *testing.T) {
 			require.NoError(t, err)
 
 			supervisor.Supervise(installation)
-			expectInstallationState(t, sqlStore, installation, model.InstallationStateCreationRequested)
+			expectInstallationState(t, sqlStore, installation, model.InstallationStateCreationInProgress)
 			expectClusterInstallations(t, sqlStore, installation, 1, model.ClusterInstallationStateCreationRequested)
 			expectClusterInstallationsOnCluster(t, sqlStore, cluster, 1)
 		})
@@ -964,7 +964,7 @@ func TestInstallationSupervisor(t *testing.T) {
 					require.NoError(t, err)
 
 					supervisor.Supervise(installation)
-					expectInstallationState(t, sqlStore, installation, model.InstallationStateCreationRequested)
+					expectInstallationState(t, sqlStore, installation, model.InstallationStateCreationInProgress)
 					expectClusterInstallations(t, sqlStore, installation, 1, model.ClusterInstallationStateCreationRequested)
 					expectClusterInstallationsOnCluster(t, sqlStore, cluster, i)
 				})
@@ -998,7 +998,7 @@ func TestInstallationSupervisor(t *testing.T) {
 			require.NoError(t, err)
 
 			supervisor.Supervise(isolatedInstallation)
-			expectInstallationState(t, sqlStore, isolatedInstallation, model.InstallationStateCreationRequested)
+			expectInstallationState(t, sqlStore, isolatedInstallation, model.InstallationStateCreationInProgress)
 			expectClusterInstallations(t, sqlStore, isolatedInstallation, 1, model.ClusterInstallationStateCreationRequested)
 			expectClusterInstallationsOnCluster(t, sqlStore, cluster, 1)
 

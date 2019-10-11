@@ -804,7 +804,14 @@ func (provisioner *KopsProvisioner) CreateClusterInstallation(cluster *model.Clu
 
 	if installation.License != "" {
 		licenseSecretName := fmt.Sprintf("%s-license", makeClusterInstallationName(clusterInstallation))
-		_, err = k8sClient.CreateSecret(clusterInstallation.Namespace, licenseSecretName, map[string]string{"license": installation.License})
+		licenseSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: licenseSecretName,
+			},
+			StringData: map[string]string{"license": installation.License},
+		}
+
+		_, err = k8sClient.CreateOrUpdateSecret(clusterInstallation.Namespace, licenseSecret)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create the license secret %s/%s", clusterInstallation.Namespace, licenseSecretName)
 		}
@@ -813,34 +820,17 @@ func (provisioner *KopsProvisioner) CreateClusterInstallation(cluster *model.Clu
 		logger.Debug("Cluster installation configured with a Mattermost license")
 	}
 
-	switch installation.Filestore {
-	case model.InstallationFilestoreOperator:
-		logger.Debug("Cluster installation configured to use MinIO operator filestore")
+	filestoreSpec, filestoreSecret, err := installation.GetFilestore().GenerateFilestoreSpecAndSecret(logger)
+	if err != nil {
+		return err
+	}
 
-	case model.InstallationFilestoreS3:
-		iamAccessKey, err := awsClient.SecretsManagerGetIAMAccessKey(installation.ID)
+	if filestoreSecret != nil {
+		_, err = k8sClient.CreateOrUpdateSecret(clusterInstallation.Namespace, filestoreSecret)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to create the filestore secret %s/%s", clusterInstallation.Namespace, filestoreSecret.Name)
 		}
-
-		secretStrings := map[string]string{
-			"MINIO_ACCESS_KEY": iamAccessKey.ID,
-			"MINIO_SECRET_KEY": iamAccessKey.Secret,
-		}
-
-		iamAccessKeySecretName := fmt.Sprintf("%s-iam-access-key", makeClusterInstallationName(clusterInstallation))
-		_, err = k8sClient.CreateSecret(clusterInstallation.Namespace, iamAccessKeySecretName, secretStrings)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create the IAM access key secret %s/%s", clusterInstallation.Namespace, iamAccessKeySecretName)
-		}
-
-		mattermostInstallation.Spec.Minio.ExternalURL = aws.S3URL
-		mattermostInstallation.Spec.Minio.ExternalBucket = aws.CloudID(installation.ID)
-		mattermostInstallation.Spec.Minio.Secret = iamAccessKeySecretName
-		logger.Debug("Cluster installation configured to use an AWS S3 filestore")
-
-	default:
-		logger.Warnf("Unknown filestore %s; defaulting to MinIO operator filestore", installation.Filestore)
+		mattermostInstallation.Spec.Minio = *filestoreSpec
 	}
 
 	_, err = k8sClient.MattermostClientset.MattermostV1alpha1().ClusterInstallations(clusterInstallation.Namespace).Create(mattermostInstallation)

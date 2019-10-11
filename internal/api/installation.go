@@ -344,6 +344,8 @@ func handleDeleteInstallation(c *Context, w http.ResponseWriter, r *http.Request
 	switch installation.State {
 	case model.InstallationStateStable:
 	case model.InstallationStateCreationRequested:
+	case model.InstallationStateCreationPreProvisioning:
+	case model.InstallationStateCreationInProgress:
 	case model.InstallationStateCreationDNS:
 	case model.InstallationStateCreationNoCompatibleClusters:
 	case model.InstallationStateCreationFailed:
@@ -352,6 +354,7 @@ func handleDeleteInstallation(c *Context, w http.ResponseWriter, r *http.Request
 	case model.InstallationStateUpgradeFailed:
 	case model.InstallationStateDeletionRequested:
 	case model.InstallationStateDeletionInProgress:
+	case model.InstallationStateDeletionFinalCleanup:
 	case model.InstallationStateDeletionFailed:
 	default:
 		c.Logger.Warnf("unable to delete installation while in state %s", installation.State)

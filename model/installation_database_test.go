@@ -14,8 +14,8 @@ func TestIsSupportedDatabase(t *testing.T) {
 	}{
 		{"", false},
 		{"unknown", false},
-		{model.InstallationDatabaseOperator, true},
-		{model.InstallationDatabaseRDS, true},
+		{model.InstallationDatabaseMysqlOperator, true},
+		{model.InstallationDatabaseAwsRDS, true},
 	}
 
 	for _, tc := range testCases {

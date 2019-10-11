@@ -57,6 +57,21 @@ func (a *Client) iamEnsureUserCreated(awsID string, logger log.FieldLogger) (*ia
 func (a *Client) iamEnsureUserDeleted(awsID string, logger log.FieldLogger) error {
 	svc := iam.New(session.New())
 
+	_, err := svc.GetUser(&iam.GetUserInput{
+		UserName: aws.String(awsID),
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() != iam.ErrCodeNoSuchEntityException {
+				return err
+			}
+
+			logger.WithField("iam-user-name", awsID).Warn("AWS IAM user could not be found; assuming already deleted")
+			return nil
+		}
+		return err
+	}
+
 	policyResult, err := svc.ListAttachedUserPolicies(&iam.ListAttachedUserPoliciesInput{
 		UserName: aws.String(awsID),
 	})

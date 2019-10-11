@@ -4,6 +4,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/pkg/errors"
 )
 
@@ -37,7 +38,17 @@ func (a *Client) s3EnsureBucketCreated(bucketName string) error {
 func (a *Client) s3EnsureBucketDeleted(bucketName string) error {
 	svc := s3.New(session.New())
 
-	_, err := svc.DeleteBucket(&s3.DeleteBucketInput{
+	// AWS forces S3 buckets to be emptry before they can be deleted.
+	iter := s3manager.NewDeleteListIterator(svc, &s3.ListObjectsInput{
+		Bucket: aws.String(bucketName),
+	})
+
+	err := s3manager.NewBatchDeleteWithClient(svc).Delete(aws.BackgroundContext(), iter)
+	if err != nil {
+		return errors.Wrap(err, "unable to delete bucket objects")
+	}
+
+	_, err = svc.DeleteBucket(&s3.DeleteBucketInput{
 		Bucket: aws.String(bucketName),
 	})
 	if err != nil {
