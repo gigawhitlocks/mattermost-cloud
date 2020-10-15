@@ -59,6 +59,9 @@ func init() {
 	serverCmd.PersistentFlags().Bool("debug", false, "Whether to output debug logs.")
 	serverCmd.PersistentFlags().Bool("machine-readable-logs", false, "Output the logs in machine readable format.")
 	serverCmd.PersistentFlags().Bool("dev", false, "Set sane defaults for development")
+
+	// XXX TODO change to the official repo as a default
+	serverCmd.PersistentFlags().String("values-repository", "https://gitlab.com/gigawhitlocks/utility-group-values", "The repository which holds the values and Helm charts for the cluster utilities")
 }
 
 var serverCmd = &cobra.Command{
@@ -126,6 +129,8 @@ var serverCmd = &cobra.Command{
 		keepDatabaseData, _ := command.Flags().GetBool("keep-database-data")
 		keepFilestoreData, _ := command.Flags().GetBool("keep-filestore-data")
 		useExistingResources, _ := command.Flags().GetBool("use-existing-aws-resources")
+
+		valuesRepo, _ := command.Flags().GetString("values-repository")
 
 		wd, err := os.Getwd()
 		if err != nil {
@@ -198,6 +203,7 @@ var serverCmd = &cobra.Command{
 			resourceUtil,
 			logger,
 			sqlStore,
+			valuesRepo,
 		)
 
 		var multiDoer supervisor.MultiDoer

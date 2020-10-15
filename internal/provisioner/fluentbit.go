@@ -129,7 +129,7 @@ func (f *fluentbit) NewHelmDeployment(logger log.FieldLogger) *helmDeployment {
 @INCLUDE fluent-bit-output.conf
 %s
 `, elasticSearchDNS, auditLogsConf),
-		valuesPath:      "helm-charts/fluent-bit_values.yaml",
+		valuesPath:      "/fluent-bit_values.yaml",
 		kopsProvisioner: f.provisioner,
 		kops:            f.kops,
 		logger:          f.logger,

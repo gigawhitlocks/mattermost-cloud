@@ -24,15 +24,15 @@ const (
 
 const (
 	// PrometheusDefaultVersion defines the default version for the Helm chart
-	PrometheusDefaultVersion = "10.4.0"
+	PrometheusDefaultVersion = "6925b9ad2584b8f77e230d2bcb635cb64ace0a5d"
 	// PrometheusOperatorDefaultVersion defines the default version for the Helm chart
-	PrometheusOperatorDefaultVersion = "9.4.4"
+	PrometheusOperatorDefaultVersion = "6925b9ad2584b8f77e230d2bcb635cb64ace0a5d"
 	// NginxDefaultVersion defines the default version for the Helm chart
-	NginxDefaultVersion = "2.15.0"
+	NginxDefaultVersion = "6925b9ad2584b8f77e230d2bcb635cb64ace0a5d"
 	// FluentbitDefaultVersion defines the default version for the Helm chart
-	FluentbitDefaultVersion = "2.8.7"
+	FluentbitDefaultVersion = "6925b9ad2584b8f77e230d2bcb635cb64ace0a5d"
 	// TeleportDefaultVersion defines the default version for the Helm chart
-	TeleportDefaultVersion = "0.3.0"
+	TeleportDefaultVersion = "6925b9ad2584b8f77e230d2bcb635cb64ace0a5d"
 )
 
 // UtilityMetadata is a container struct for any metadata related to

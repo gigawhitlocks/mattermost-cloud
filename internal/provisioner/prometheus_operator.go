@@ -204,7 +204,7 @@ func (p *prometheusOperator) NewHelmDeployment() *helmDeployment {
 		logger:              p.logger,
 		namespace:           "prometheus",
 		setArgument:         helmValueArguments,
-		valuesPath:          "helm-charts/prometheus_operator_values.yaml",
+		valuesPath:          "/prometheus_operator_values.yaml",
 		desiredVersion:      p.desiredVersion,
 	}
 }

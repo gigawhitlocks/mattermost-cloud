@@ -133,7 +133,7 @@ func (p *prometheus) NewHelmDeployment() *helmDeployment {
 		logger:              p.logger,
 		namespace:           "prometheus",
 		setArgument:         helmValueArguments,
-		valuesPath:          "helm-charts/prometheus_values.yaml",
+		valuesPath:          "/prometheus_values.yaml",
 		desiredVersion:      p.desiredVersion,
 	}
 }

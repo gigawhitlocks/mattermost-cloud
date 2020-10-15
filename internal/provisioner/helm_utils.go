@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"time"
 
 	"github.com/pkg/errors"
@@ -59,8 +60,32 @@ func installHelm(kops *kops.Cmd, repos map[string]string, logger log.FieldLogger
 	return nil
 }
 
+// TODO DELETE ME after there are no longer any Clusters being managed
+// with SemVer desiredVersion and actualVersion fields instead of SHA1
+// sums representing a git commit
+var sha1pattern *regexp.Regexp = regexp.MustCompile(`\b[0-9a-f]{5,40}\b`)
+
+// TODO DELETE ME at the same time as sha1pattern
+func isGitHash(input string) bool {
+	return sha1pattern.MatchString(input)
+}
+
+// buildValuesPath creates the correct path for Helm to get charts from
+func (d *helmDeployment) buildValuesPath() {
+	// TODO DELETE this if statement when isGitHash is removed
+	if isGitHash(d.desiredVersion) {
+		d.valuesPath = fmt.Sprintf("%s/-/raw/%s%s",
+			d.kopsProvisioner.valuesRepository,
+			d.desiredVersion,
+			d.valuesPath)
+	} else {
+		d.valuesPath = "./helm-charts" + d.valuesPath
+	}
+}
+
 func (d *helmDeployment) Update() error {
 	logger := d.logger.WithField("helm-update", d.chartName)
+	d.buildValuesPath()
 
 	logger.Infof("Refreshing helm chart %s -- may trigger service upgrade", d.chartName)
 	err := upgradeHelmChart(*d, d.kops.GetKubeConfigPath(), logger)
@@ -71,6 +96,7 @@ func (d *helmDeployment) Update() error {
 }
 
 func (d *helmDeployment) Delete() error {
+	d.buildValuesPath()
 	logger := d.logger.WithField("helm-delete", d.chartDeploymentName)
 
 	logger.Infof("Deleting helm chart %s", d.chartDeploymentName)
@@ -158,9 +184,6 @@ func installHelmChart(chart helmDeployment, configPath string, logger log.FieldL
 	if chart.setArgument != "" {
 		arguments = append(arguments, "--set", chart.setArgument)
 	}
-	if chart.desiredVersion != "" {
-		arguments = append(arguments, "--version", chart.desiredVersion)
-	}
 
 	helmClient, err := helm.New(logger)
 	if err != nil {
@@ -190,9 +213,6 @@ func upgradeHelmChart(chart helmDeployment, configPath string, logger log.FieldL
 	}
 	if chart.setArgument != "" {
 		arguments = append(arguments, "--set", chart.setArgument)
-	}
-	if chart.desiredVersion != "" {
-		arguments = append(arguments, "--version", chart.desiredVersion)
 	}
 
 	helmClient, err := helm.New(logger)
